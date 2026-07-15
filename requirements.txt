@@ -1,0 +1,15 @@
+beautifulsoup4>=4.12.3
+chromadb>=0.5.5
+langchain-text-splitters>=0.2.4
+numpy>=1.26.4
+openai>=1.40.0
+pdfplumber>=0.11.4
+PyPDF2>=3.0.1
+python-dotenv>=1.0.1
+
+# Phase 2+ dependencies are listed early so the environment is ready to grow.
+rank-bm25>=0.2.2
+sentence-transformers>=3.0.1
+fastapi>=0.112.0
+uvicorn[standard]>=0.30.5
+streamlit>=1.37.1
