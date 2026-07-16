@@ -56,6 +56,29 @@ python -m src.data.chunker --documents data/processed/documents.jsonl --out data
 python -m src.indexing.vector_store --chunks data/processed/chunks_recursive.jsonl
 ```
 
+## Run The Phase 2 Retrieval Engine
+
+After Phase 1 has indexed Chroma and written chunk JSONL, run dense, sparse, fusion, or the full hybrid flow:
+
+```bash
+python -m src.retrieval.dense "How fast do reset links expire?"
+python -m src.retrieval.sparse "VPN access approval" --chunks data/processed/chunks_recursive.jsonl
+python -m src.retrieval.hybrid "When should critical incidents be escalated?"
+```
+
+The hybrid engine performs:
+
+- Dense Chroma retrieval: top 10
+- Sparse BM25 retrieval: top 10
+- Weighted Reciprocal Rank Fusion: top 20 candidates
+- Cross-encoder reranking: final top 5
+
+For quick local checks without downloading the reranker model:
+
+```bash
+python -m src.retrieval.hybrid "When should critical incidents be escalated?" --no-rerank
+```
+
 ## Project Layout
 
 ```text
