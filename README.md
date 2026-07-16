@@ -1,10 +1,19 @@
 # RAG Hybrid Search
 
-Production-style Retrieval-Augmented Generation over internal documents. Phase 1 is implemented: multi-format document loading, configurable chunking, OpenAI embeddings, ChromaDB persistence, and cosine-similarity deduplication before insert.
+Production-style Retrieval-Augmented Generation over internal documents. Phases 1 and 2 are implemented: multi-format ingestion, chunking, OpenAI embeddings, ChromaDB persistence, dense retrieval, BM25 sparse retrieval, Reciprocal Rank Fusion, and cross-encoder reranking.
 
-## Phase 1 Scope
+## Current Status
+
+| Phase | Status | What is implemented |
+| --- | --- | --- |
+| Phase 1: Ingestion and Chunking | Complete | Document loading, cleaning, chunking, OpenAI embeddings, ChromaDB indexing, and duplicate skipping with cosine similarity `> 0.95`. |
+| Phase 2: Hybrid Retrieval | Complete | Dense Chroma retrieval, BM25 keyword retrieval, weighted RRF, and top-5 cross-encoder reranking. |
+| Phase 3: Generation and Citations | Next | Grounded LLM prompts, inline citations, citation verification, and confidence scoring. |
+
+## Phase 1: Ingestion and Chunking
 
 - Load Markdown, text, HTML, and PDF files from `data/docs/`.
+- Use BeautifulSoup for HTML, `pdfplumber` with PyPDF2 fallback for PDFs, and Markdown/text parsing for plain files.
 - Normalize documents into dictionaries shaped like:
 
 ```json
@@ -20,6 +29,13 @@ Production-style Retrieval-Augmented Generation over internal documents. Phase 1
 - Embed chunks with `text-embedding-3-small`.
 - Persist chunks to local ChromaDB.
 - Skip near-duplicate chunks when cosine similarity against existing Chroma chunks is greater than `0.95`.
+
+## Phase 2: Hybrid Retrieval Engine
+
+- Dense retrieval embeds a user query and returns the top 10 ChromaDB chunks.
+- Sparse retrieval builds `BM25Okapi` over the same chunk JSONL produced by Phase 1 and returns the top 10 keyword matches.
+- Reciprocal Rank Fusion merges dense and sparse lists by rank position, not raw score addition.
+- Cross-encoder reranking scores the top 20 fused candidates with `cross-encoder/ms-marco-MiniLM-L-6-v2` and returns the final top 5 chunks.
 
 ## Setup
 
@@ -83,30 +99,37 @@ python -m src.retrieval.hybrid "When should critical incidents be escalated?" --
 
 ```text
 rag-hybrid-search/
-├── data/
-│   ├── docs/
-│   ├── processed/
-│   └── chroma/
-├── eval/
-├── scripts/
-│   └── phase1_ingest.py
-├── src/
-│   ├── data/
-│   │   ├── loader.py
-│   │   └── chunker.py
-│   ├── indexing/
-│   │   ├── embedder.py
-│   │   └── vector_store.py
-│   ├── retrieval/
-│   └── generation/
-├── tests/
-├── requirements.txt
-└── README.md
+|-- data/
+|   |-- docs/
+|   |-- processed/
+|   `-- chroma/
+|-- eval/
+|-- scripts/
+|   `-- phase1_ingest.py
+|-- src/
+|   |-- data/
+|   |   |-- loader.py
+|   |   `-- chunker.py
+|   |-- indexing/
+|   |   |-- embedder.py
+|   |   `-- vector_store.py
+|   |-- retrieval/
+|   |   |-- dense.py
+|   |   |-- sparse.py
+|   |   |-- fusion.py
+|   |   |-- reranker.py
+|   |   |-- hybrid.py
+|   |   `-- types.py
+|   `-- generation/
+|-- tests/
+|-- requirements.txt
+`-- README.md
 ```
 
 ## Roadmap
 
-- Phase 2: dense retrieval, BM25 sparse retrieval, Reciprocal Rank Fusion, and cross-encoder reranking.
+- Phase 1: complete.
+- Phase 2: complete.
 - Phase 3: grounded answer generation, inline citations, citation verification, and confidence scoring.
 - Phase 4: golden dataset and automated evaluation.
 - Phase 5: FastAPI service, Streamlit dashboard, and Docker Compose.
