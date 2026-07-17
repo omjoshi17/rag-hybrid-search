@@ -45,6 +45,10 @@ def default_chunks_path(strategy: str = "recursive") -> Path:
     return default_processed_dir() / f"chunks_{strategy}.jsonl"
 
 
+def latest_chunks_path() -> Path:
+    return default_processed_dir() / "chunks_latest.jsonl"
+
+
 def safe_filename(filename: str) -> str:
     name = Path(filename).name
     return re.sub(r"[^A-Za-z0-9._ -]", "_", name).strip() or "uploaded_doc"
@@ -81,6 +85,7 @@ def run_ingestion(strategy: str, chunk_size: int, chunk_overlap: int, reset: boo
     chunks = chunk_documents(documents, config)
     chunks_path = default_chunks_path(strategy)
     write_jsonl(chunks, chunks_path)
+    write_jsonl(chunks, latest_chunks_path())
 
     from src.indexing.embedder import EmbeddingConfig, OpenAIEmbedder
     from src.indexing.vector_store import get_chroma_collection, index_chunks, reset_chroma_collection
@@ -95,7 +100,7 @@ def run_ingestion(strategy: str, chunk_size: int, chunk_overlap: int, reset: boo
         documents_loaded=len(documents),
         chunks_created=len(chunks),
         indexing=stats,
-        chunks_path=str(chunks_path.relative_to(PROJECT_ROOT)),
+        chunks_path=str(latest_chunks_path().relative_to(PROJECT_ROOT)),
     )
 
 
