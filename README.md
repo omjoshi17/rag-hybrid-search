@@ -146,7 +146,7 @@ OPENAI_API_KEY=your_openai_api_key_here
 
 ## Index Documents
 
-Place files in `data/docs/`, then run:
+Place files in `data/docs/`, then run. This writes both strategy-specific chunks and `data/processed/chunks_latest.jsonl` for the API and dashboard.
 
 ```bash
 python scripts/phase1_ingest.py --strategy recursive --reset
