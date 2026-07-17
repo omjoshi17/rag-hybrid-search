@@ -7,7 +7,7 @@ services:
     environment:
       CHROMA_PERSIST_DIR: data/chroma
       CHROMA_COLLECTION: internal_docs
-      RAG_CHUNKS_PATH: data/processed/chunks_recursive.jsonl
+      RAG_CHUNKS_PATH: data/processed/chunks_latest.jsonl
     ports:
       - "8000:8000"
     volumes:
