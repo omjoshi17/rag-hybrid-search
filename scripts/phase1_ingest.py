@@ -69,6 +69,7 @@ def main() -> None:
     config = ChunkingConfig(strategy=args.strategy, chunk_size=args.chunk_size, chunk_overlap=args.chunk_overlap)
     chunks = chunk_documents(documents, config)
     write_jsonl(chunks, chunks_path)
+    write_jsonl(chunks, processed_dir / "chunks_latest.jsonl")
     LOGGER.info("Wrote %s chunks to %s", len(chunks), chunks_path)
 
     if args.skip_index:
