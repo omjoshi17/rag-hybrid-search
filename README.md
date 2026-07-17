@@ -1,6 +1,6 @@
 # RAG Hybrid Search
 
-Production-style Retrieval-Augmented Generation over internal documents. Phases 1 and 2 are implemented: multi-format ingestion, chunking, OpenAI embeddings, ChromaDB persistence, dense retrieval, BM25 sparse retrieval, Reciprocal Rank Fusion, and cross-encoder reranking.
+Production-style Retrieval-Augmented Generation over internal documents. Phases 1-4 are implemented: ingestion, chunking, OpenAI embeddings, ChromaDB persistence, hybrid retrieval, grounded generation, citation verification, confidence scoring, and automated evaluation.
 
 ## Current Status
 
@@ -8,7 +8,9 @@ Production-style Retrieval-Augmented Generation over internal documents. Phases 
 | --- | --- | --- |
 | Phase 1: Ingestion and Chunking | Complete | Document loading, cleaning, chunking, OpenAI embeddings, ChromaDB indexing, and duplicate skipping with cosine similarity `> 0.95`. |
 | Phase 2: Hybrid Retrieval | Complete | Dense Chroma retrieval, BM25 keyword retrieval, weighted RRF, and top-5 cross-encoder reranking. |
-| Phase 3: Generation and Citations | Next | Grounded LLM prompts, inline citations, citation verification, and confidence scoring. |
+| Phase 3: Generation and Citations | Complete | GPT-4o grounded prompts, numbered context formatting, inline citations, citation judge, confidence scoring, and safe fallback. |
+| Phase 4: Evaluation Framework | Complete | 50-case golden dataset and automated retrieval/citation evaluation runner. |
+| Phase 5: API and Dashboard | Next | FastAPI endpoints, Streamlit UI, and Docker Compose. |
 
 ## Phase 1: Ingestion and Chunking
 
@@ -36,6 +38,21 @@ Production-style Retrieval-Augmented Generation over internal documents. Phases 
 - Sparse retrieval builds `BM25Okapi` over the same chunk JSONL produced by Phase 1 and returns the top 10 keyword matches.
 - Reciprocal Rank Fusion merges dense and sparse lists by rank position, not raw score addition.
 - Cross-encoder reranking scores the top 20 fused candidates with `cross-encoder/ms-marco-MiniLM-L-6-v2` and returns the final top 5 chunks.
+
+## Phase 3: Generation and Citation Layer
+
+- Formats retrieved chunks as `[Document X]` context blocks.
+- Uses GPT-4o to answer only from provided context.
+- Requires citations immediately after factual claims.
+- Verifies each cited sentence against the cited chunk with a secondary judge call.
+- Scores confidence as normalized cross-encoder relevance plus verified citation rate.
+- Returns a safe fallback when confidence is below threshold.
+
+## Phase 4: Evaluation Framework
+
+- Includes 50 golden Q&A objects in `eval/golden_dataset.json`.
+- Runs the full pipeline for each question in `eval/run_eval.py`.
+- Records required-document retrieval hits, citation accuracy, fallback rate, and per-case results.
 
 ## Setup
 
@@ -95,6 +112,27 @@ For quick local checks without downloading the reranker model:
 python -m src.retrieval.hybrid "When should critical incidents be escalated?" --no-rerank
 ```
 
+## Run The Phase 3 Generation Pipeline
+
+After Phase 1 indexing is complete, ask a grounded question:
+
+```bash
+python -m src.generation.llm "When should critical incidents be escalated?"
+```
+
+The response includes the final answer, raw answer, confidence score, citation checks, retrieved chunks, and fallback status.
+
+## Run Phase 4 Evaluation
+
+Run the golden dataset:
+
+```bash
+python eval/run_eval.py --limit 5
+python eval/run_eval.py --output eval/results.json
+```
+
+The full evaluation requires `OPENAI_API_KEY`, indexed Chroma data, and the reranker model available locally or downloadable by `sentence-transformers`.
+
 ## Project Layout
 
 ```text
@@ -104,6 +142,8 @@ rag-hybrid-search/
 |   |-- processed/
 |   `-- chroma/
 |-- eval/
+|   |-- golden_dataset.json
+|   `-- run_eval.py
 |-- scripts/
 |   `-- phase1_ingest.py
 |-- src/
@@ -121,6 +161,9 @@ rag-hybrid-search/
 |   |   |-- hybrid.py
 |   |   `-- types.py
 |   `-- generation/
+|       |-- prompts.py
+|       |-- llm.py
+|       `-- citation_judge.py
 |-- tests/
 |-- requirements.txt
 `-- README.md
@@ -130,7 +173,7 @@ rag-hybrid-search/
 
 - Phase 1: complete.
 - Phase 2: complete.
-- Phase 3: grounded answer generation, inline citations, citation verification, and confidence scoring.
-- Phase 4: golden dataset and automated evaluation.
+- Phase 3: complete.
+- Phase 4: complete.
 - Phase 5: FastAPI service, Streamlit dashboard, and Docker Compose.
 - Phase 6: portfolio polish and demo walkthrough.
